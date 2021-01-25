@@ -1,0 +1,4 @@
+rule convert_fastq_to_fasta:
+    input: "data/21AL.A_R1.fastq"
+    output: "test_out.txt"
+    shell: "python3 scripts/fastq_to_fasta.py {input} {output}"

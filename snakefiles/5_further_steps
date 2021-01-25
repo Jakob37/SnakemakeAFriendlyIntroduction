@@ -1,0 +1,16 @@
+rule all:
+    input: 'data_out/summary/21AL.A_R1.tsv'
+
+rule convert_fastq_to_fasta:
+    input: 'data/{sample}.fastq'
+    output: 'data_out/fasta/{sample}.fasta'
+    shell: 'python3 scripts/fastq_to_fasta.py {input} {output}'
+
+rule retrieve_fasta_stats:
+    input: 'data_out/fasta/{sample}.fasta'
+    output: 'data_out/summary/{sample}.tsv'
+    shell: 'python3 scripts/retrieve_fasta_stats.py {input} {output}'
+
+# Further steps:
+
+# Visualization
