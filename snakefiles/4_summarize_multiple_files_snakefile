@@ -1,13 +1,37 @@
+configfile: "config.yaml"
+
+samples, = glob_wildcards("data/{sample}.fastq")
+# The comma samples, <- is used to flatten the initial input into a list
+
+# For development, it might be easier to select a small set of samples first
+# samples = ['21AL.A_R1', 'MA.B.E_R1', 'MA.C.A_R1']
+
 rule all:
-    input: 'data_out/summary/21AL.A_R1.tsv'
+    input:
+        "output/3_combined/combined.tsv"
 
 rule convert_fastq_to_fasta:
-    input: 'data/{sample}.fastq'
-    output: 'data_out/fasta/{sample}.fasta'
-    shell: 'python3 scripts/fastq_to_fasta.py {input} {output}'
+    input: "data/{sample}.fastq"
+    output: "output/1_fasta/{sample}.fasta"
+    shell:
+        """
+        python3 scripts/fastq_to_fasta.py --input {input} --output {output} --max_entries {config[settings][max_nbr_seqs]}
+        """
 
-rule retrieve_fasta_stats:
-    input: 'data_out/fasta/{sample}.fasta'
-    output: 'data_out/summary/{sample}.tsv'
-    shell: 'python3 scripts/retrieve_fasta_stats.py {input} {output}'
+rule get_sequence_measures:
+    input:
+        in_fasta="output/1_fasta/{sample}.fasta"
+    output:
+        out_fasta="output/2_summaries/{sample}.tsv"
+    shell:
+        """
+        python3 scripts/retrieve_fasta_stats.py --input {input.in_fasta} --output {output.out_fasta}
+        """
 
+rule combine_sequence_measures:
+    input: expand("output/2_summaries/{sample}.tsv", sample=samples)
+    output: "output/3_combined/combined.tsv"
+    shell:
+        """
+        python3 scripts/combine_files.py --input {input} --output {output}
+        """

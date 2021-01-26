@@ -1,13 +1,21 @@
+configfile: "config.yaml"
+
 rule all:
-    input: 'data_out/summary/21AL.A_R1.tsv'
+    input: 'data_out/2_summary/21AL.A_R1.tsv'
 
 rule convert_fastq_to_fasta:
     input: 'data/{sample}.fastq'
-    output: 'data_out/fasta/{sample}.fasta'
-    shell: 'python3 scripts/fastq_to_fasta.py {input} {output}'
+    output: 'data_out/1_fasta/{sample}.fasta'
+    shell:
+        """
+        python3 scripts/fastq_to_fasta.py --input {input} --output {output} --max_entries {config[settings][max_nbr_seqs]}
+        """
 
 rule retrieve_fasta_stats:
-    input: 'data_out/fasta/{sample}.fasta'
-    output: 'data_out/summary/{sample}.tsv'
-    shell: 'python3 scripts/retrieve_fasta_stats.py {input} {output}'
+    input: 'data_out/1_fasta/{sample}.fasta'
+    output: 'data_out/2_summary/{sample}.tsv'
+    shell:
+        """
+        python3 scripts/retrieve_fasta_stats.py --input {input} --output {output}
+        """
 

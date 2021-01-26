@@ -1,7 +1,0 @@
-rule a_dummy_rule:
-    input: "testdata/test_input.txt"
-    output: "testdata/test_output.txt"
-    shell:
-        """
-        sed "s/^/XXX/" {input} > {output}
-        """

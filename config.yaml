@@ -1,0 +1,6 @@
+settings:
+  max_nbr_seqs: 100
+plotting:
+  number_bins: 20
+  number_cols: 4
+  title: "GC-distributions"

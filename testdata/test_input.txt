@@ -1,0 +1,3 @@
+My first line for testing Snakemake
+My second line
+My third and final line
