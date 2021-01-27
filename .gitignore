@@ -2,3 +2,4 @@
 .snakemake/
 output/
 venv/
+full_data/

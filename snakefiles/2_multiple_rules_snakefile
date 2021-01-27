@@ -8,7 +8,10 @@ rule convert_fastq_to_fasta:
     output: 'data_out/1_fasta/{sample}.fasta'
     shell:
         """
-        python3 scripts/fastq_to_fasta.py --input {input} --output {output} --max_entries {config[settings][max_nbr_seqs]}
+        python3 scripts/fastq_to_fasta.py \
+            --input {input} \
+            --output {output} \
+            --max_entries {config[settings][max_nbr_seqs]}
         """
 
 rule retrieve_fasta_stats:

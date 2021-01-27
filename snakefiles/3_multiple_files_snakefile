@@ -1,10 +1,10 @@
 configfile: "config.yaml"
 
-samples, = glob_wildcards("data/{sample}.fastq")
+# samples, = glob_wildcards("data/{sample}.fastq")
 # The comma samples, <- is used to flatten the initial input into a list
 
 # For development, it might be easier to select a small set of samples first
-# samples = ['21AL.A_R1', 'MA.B.E_R1', 'MA.C.A_R1']
+samples = ['21AL.A_R1', 'MA.B.E_R1', 'MA.C.A_R1']
 
 rule all:
     input:
