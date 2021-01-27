@@ -16,7 +16,7 @@ def main():
         for line in in_fh:
             line_nbr += 1
             if line_nbr > args.max_entries * 4:
-                print('Reaching max-number of entries, stopping...')
+                # print('Reaching max-number of entries, stopping...')
                 break
             line = line.rstrip()
 
@@ -29,7 +29,7 @@ def main():
             if line_nbr % 4 in [1,2]:
                 print(line, file=out_fh)
 
-    print('Written {} lines from file {} to file {}'.format(line_nbr, in_file, out_file))
+    # print('Written {} lines from file {} to file {}'.format(line_nbr, in_file, out_file))
 
 
 def parse_arguments():

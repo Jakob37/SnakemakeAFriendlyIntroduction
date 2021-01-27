@@ -9,19 +9,11 @@ Snakemake is a workflow-based system built to make reproducible analyses easy to
 There are several arguments for using it in your bioinformatics analyses:
 
 * Reproducibility - preserve the exact sequence of commands used to generate certain results.
-* Modularity - giving it flexibility, and making it easy to follow the analysis flow.
-* Ease of parallel processing.
+* Modularity - giving your analysis flexibility, and making it easy to follow the analysis flow.
+* Ease of parallel processing - optimally use your resources with minimal effort.
 * Support for managing versions in containers such as [Docker](https://www.docker.com) or [Singularity](https://sylabs.io).
 
-I have also found notebook-software such as [Jupyter notebooks](https://jupyter.org/) or [R Notebook](https://blog.rstudio.com/2016/10/05/r-notebooks/) to complement Snakemake well when it comes to visualizations and statistical analysis.
-
-Finally, I would recommend version-controlling your workflow and your scripts in a system such as [Git](https://git-scm.com). This allows you to later come back and see exactly how the code looked at an earlier stage. If interested, I have written a tutorial for bioinformaticians [here](https://www.jakobwillforss.com/post/introduction-to-git-for-bioinformaticians/).
-
-Further discussion on how to nicely carry out bioinformatics analysis is available in the article [Organizing your bioinformatics projects](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1000424).
-
-It can be argued how to best do a reproducible analysis. I think the most important aspect is to care about the reproducibility and flexibility of your analysis, and try out different strategies to achieve it. Over time you will find the set of tools that best suits your needs.
-
-But with that said, I think you will find Snakemake a powerful addition in your set of analysis-tools, well worth the relatively limited time and effort needed to pick up.
+With that said, I think you will find Snakemake a powerful addition in your set of analysis-tools, well worth the relatively limited time and effort needed to pick up.
 
 # Getting started
 
@@ -29,11 +21,11 @@ But with that said, I think you will find Snakemake a powerful addition in your 
 
 For Linux-users snakemake can easily be installed through your package system (`apt install snakemake` for Ubuntu-users, or Windows Linux subsystem users).
 
-For Windows-users who don't use the [Linux subsystem](https://docs.microsoft.com/en-us/windows/wsl/install-win10), it is a little bit more tricky. The recommended way is to run it through Miniconda. You find the recommended steps to install Snakemake [here](https://snakemake.readthedocs.io/en/stable/tutorial/setup.html).
+For Windows-users who don't use the [Linux subsystem](https://docs.microsoft.com/en-us/windows/wsl/install-win10), it is a bit more tricky. The recommended way is to run it through Miniconda. You find the recommended steps to install Snakemake [here](https://snakemake.readthedocs.io/en/stable/tutorial/setup.html).
 
 ### The exercise
 
-The aim is to layer-by-layer introduce the fundamental parts of Snakemake which covers most of the basic bioinformatics use-cases. In the end of this tutorial, you will be able to:
+The aim in this exercise is to layer-by-layer introduce the fundamental parts of Snakemake which covers most of the basic bioinformatics use-cases. In the end of this tutorial, you will be able to:
 
 * Build a workflow that can take an arbitrary number of input files.
 * Reprocess these in parallel, efficiently using the computer's resources.
@@ -50,11 +42,11 @@ I would encourage you to follow along with the exercise by writing out your own 
 
 ### The data
 
-Subsets of the data are found in the GitHub repository. For the interested, the full-sized dataset can also be downloaded from [here](XXX).
+Subsets of the data containing the 2500 first reads from each file are found in the GitHub repository "data" folder. For the interested, the full-sized FASTQ-files can also be downloaded from [here](https://www.dropbox.com/s/gehwyfz21xsim5q/snakemake_workshop_full_data.zip?dl=0).
 
-The data is originally from a study investigating the gut microbiota of ants from different colonies (Benjamino1 and Graf, 2016). The study can be accessed [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4756164).
+The data is originally from a study investigating the gut microbiota of ants from different colonies (Benjamino and Graf, 2016). The study can be accessed [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4756164).
 
-We will investigate the GC-content from the microbiome found in different colonies. To do this, we will build a pipeline that can:
+We will investigate the GC-content from the microbiome found in different ant-colonies. To do this, we will build a Snakemake pipeline that can:
 
 1. Reprocess the data from raw FASTQ-files into FASTA-files.
 2. Extract key information from these reads.
@@ -69,13 +61,15 @@ For further help, take a look at the [Snakemake FAQ](https://snakemake.readthedo
 
 The Snakemake workflow consists of rules. These rules have `inputs` and `outputs`, which specify what files are expected for them to run, and which files are expected to be generated by the rule.
 
-In each rule, a piece of code is executed. This can be written out directly in the snakemake workflow (commonly using Python or Bash), or called as an external script. Here, I have prepared a collection of Python-scripts executed by the different Snakemake rules.
+In each rule, a piece of code is executed. This can be written out directly in the snakemake workflow (commonly using Python or Bash), or called as an external script. Here, I have prepared a collection of Python-scripts 
+to execute by the different Snakemake rules. These are a good starting point, but feel free (and encouraged!) to experiment further with extending the scripts or the workflow beyond what is presented here.
 
 ### A first snakemake rule
 
-Here is a simple example of a snakemake rule. It reads the file `data/21AL.A_R1.fastq`, executes the Python-script `fastq_to_fasta.py`, which in turn is expected to generate output to `output/1_fasta/21AL.A_R1.fasta`. Beyond this, the `--max_entries` specifies how big a subset of the FASTA we should use. During the development, let's use a small number of sequences.
+Here is a simple example of a snakemake rule. It reads the file `data/21AL.A_R1.fastq`, executes the Python-script `fastq_to_fasta.py`, which in turn is expected to generate output to 
+`output/1_fasta/21AL.A_R1.fasta`. Beyond this, the `--max_entries` specifies how big a subset of the FASTA we should use. During the development, let's use a small number of sequences (100 in the example below).
 
-The backslash '\' syntax is used to break lines into multiple lines. If everything was on a single line, the backslashes would be omitted.
+**Note:** The backslash '\' syntax is used to break shell-commands into multiple lines. This is done here to increase readability. The python-commands can be written on a single line, with backslashes omitted.
 
 ```
 rule convert_fastq_to_fasta:
@@ -92,17 +86,35 @@ rule convert_fastq_to_fasta:
 
 **Place this rule in your `snakefile`. At this point, this will be the only code.**
 
+Your folder structure at this point should look something like the following (likely with some additional folders and files).
+The "snakefile" will contain your newly developed Snakemake workflow.
+
+```
+snakefile
+data/
+    21AL.A_R1.fastq
+    CT.A.E_R1.fastq
+    CT.C.B_R1.fastq
+    MA.B.E_R1.fastq
+    MA.C.A_R1.fastq
+scripts/
+    combine_files.py
+    fastq_to_fasta.py
+    retrieve_fasta_stats.py
+    visualize_summary.py
+```
+
 ### Running snakemake
 
 Now let's execute our snakemake-script. We run snakemake workflows by using the `snakemake` command. When performed with no arguments, it will look for a file named `snakefile` or `Snakefile` in your working directory. 
 
-The `$` sign is used in this tutorial to show the line where the command is executed. When running it, you only need to write out "snakemake".
+**Note:** The `$` sign is used in this tutorial to show the line where the command is executed. When running it, you only need to write out "snakemake".
 
 ```
 $ snakemake
 ```
 
-If you want to run the solutions provided in the `snakefile/` directory, they can be executed one and one using the `--snakefile` command, where you can state custom locations for the snakefile. Note that you need to be in the top-level dictionary for the paths to the input to be correct.
+If you want to run the solutions provided in the `snakefile/` directory, they can be executed one and one using the `--snakefile` command, where you can state custom locations for the snakefile. 
 
 ```
 $ snakemake --snakefile snakefiles/1_single_rule_snakefile
@@ -154,18 +166,27 @@ If the command failed to run successfully, carefully inspect the errors obtained
 2. Inspect the "output" folder. What do you see there? Is it what you would expect?
 3. Try running `snakemake` again. What happened? Snakemake can figure out what rules need to be run to generate the desired output. If nothing has changed, it will not re-run any code if not prompted to.
 4. Try running `snakemake` with the `-F` flag (`snakemake -F`). What happened now? The "-F" flag allows you to force-run the workflow, even though no files have changed.
-5. Finally, try using the `-n` flag. This will give you a dry-run, which is useful to verify that there are no apparent issues with the snakemake workflow.
+5. Try using the `-n` flag. This will give you a dry-run, which is useful to verify that there are no apparent issues with the snakemake workflow.
+6. Try changing your Snakemake script to include only 10 entries. Rerun. Verify in your output that the output FASTA now contains only 10 entries (20 lines). 
+   Do you need to force the run for it to process the data after doing this change? 
 
 # Step 2: A multi-rule workflow and the configuration file
 
 Now we will run a sequence of two commands - a mini pipeline. To do this,
-we will need to add two things. Snakemake files generally include a special
+we will need to add two things. 
+
+* Snakemake files generally include a special
 rule at the top called `rule all`, where you tell Snakemake what final output
 files you want to obtain are. Based on what you specify here, Snakemake will then deduce which of the other rules it needs to run to generate this output.
-
-Furthermore, we will run a second command used to calculate some statistics for each FASTA-sequence, including the GC-content. This is of particular interest in this dataset, as we know that the GC-content varies between species. But does it vary between different microbiomes?
+* Furthermore, we will run a second command used to calculate some statistics for each FASTA-sequence, including the GC-content. 
+  This is of particular interest in this dataset, as we know that the GC-content varies between species. But does it vary between different microbiomes?
 
 The second command takes the output from the first command as input (`output/1_fasta/21AL.A_R1.fasta`). It then is expected to produce the output file `output/2_summary/21AL.A_R1.tsv`. This is provided as the input to `rule all`, as this is the final provided output.
+
+**Note:** The output location is completely flexible, as long as you keep it consistent between the rules. I have chosen to use the folder structure `output/2_summary` as a way to easily
+overview the output.
+
+Beyond this, a configuration file has been added (`config.yaml`) to provide a more flexible way to change input-parameters (such as the `--max_entires`). More on this below.
 
 ```
 configfile: 'config.yaml'
@@ -195,38 +216,60 @@ rule retrieve_fasta_stats:
         """
 ```
 
-The sequence of events when executing this script will be:
-1. Ask the rule all - which files do I need to generate?
-Answer: `output/2_summary/21AL.A_R1.tsv`
-2. Are there any commands that can prove this? Yes, rule `retrieve_fasta_stats`.
-3. Is the input to this rule ('output/1_fasta/21AL.A_R1.tsv.fasta') available on disk? No,
-then are there any rules that can generate it? Yes, rule `convert_fastq_to_fasta`.
-So, we need to execute that one first.
-4. Is the input file `data/21AL.A_R1.tsv.fastq` for this command? Yes, per-
-fect, then we are all set.
-5. Processing starts, running first rule `convert_fastq_to_fasta` and next rule `retrieve_fasta_stats`.
-
-### Configuring your analysis
-
-In addition, we included a reference to a configuration file "config.yaml". This file is located in the same folder as your snakefile, with the following content:
+Configuration file content `config.yaml`. Should be located next to the snakefile.
 
 ```
 settings:
   max_nbr_seqs: 100
 ```
 
-This setting is now provided to the first command option `--max_entries`, which allows us to limit the number of FASTQ-entries we use. It is a good habit to have to separate out settings we might want to change to the configuration file such that we later can avoid doing changes directly in the snakefile when we only want to change parameter values.
+The sequence of events when executing this script will be:
+1. Ask the rule all - which files do I need to generate?
+Answer: `output/2_summary/21AL.A_R1.tsv`
+2. Are there any commands that can provide this? Yes, rule `retrieve_fasta_stats`.
+3. Is the input to this rule (`output/1_fasta/21AL.A_R1.tsv.fasta`) available on disk? No -
+then are there any rules that can generate it? Yes, rule `convert_fastq_to_fasta`.
+So, we need to execute that one first.
+4. Is the input file to `convert_fastq_to_fasta` - `data/21AL.A_R1.tsv.fastq` available? Yes, it is present in the input data. Perfect, then we are all set.
+5. Processing starts, running first rule `convert_fastq_to_fasta` and next rule `retrieve_fasta_stats`, providing the desired output to `rule all`.
 
-Note that there are no quotation-marks in this case. This is because the variables are obtained within the shell command. If used outside the shell command (surrounded by the triple \"\"\"), you will need to use quotation marks as such: `config["settings"]["max_nbr_seqs"]`.
+### Configuring your analysis
+
+In addition, we included a reference to a configuration file `config.yaml`. This file should be located in the same folder as your snakefile, as outlined above.
+
+We now provide the value for the `convert_fastq_to_fasta` command option `--max_entries` from the configuration file.
+It is a good habit to separate out settings we might 
+want to change to the configuration file such that we later can avoid doing changes directly in the snakefile when we only want to change parameter values.
+
+The value is retrieved in the code the following way:
+
+```
+{config[settings][max_nbr_seqs]}
+```
+
+Note that there are no quotation-marks in this case. This is because the variables are obtained within the shell command. 
+If used outside the shell command (surrounded by the triple \"\"\"), you will need to use quotation marks as such: 
+
+```
+config["settings"]["max_nbr_seqs"]
+```
+
+This is a tricky part to keep track of when working with Snakemake. Sometimes you write Python-code in the snakemake-workflow itself,
+and sometimes you write shell-code within the different rules!
 
 ## Exercises:
 
 1. After running your mini-pipeline, try rerunning it. What happens?
 2. Next, try to remove the intermediate output file `output/1_fasta/21AL.A_R1.tsv.fasta` and try to rerun. What happens?
-3. The commands `snakemake --dag | dot -Tsvg > dag.svg` can be used to generate a graph that illustrates the different executed commands. Can you get it to run? Does the graph look like you expected? (It is trivial at this point, but will be more useful later in this exercise).
-4. Try changing the `max_nbr_seqs` in the config file (for instance to 200), and verify that the number of entries in the final output changes.
+3. Try changing the `max_nbr_seqs` in the config file (for instance to 15), and verify that the number of entries in the final output changes.
+4. (Might not work on Windows) The commands `snakemake --dag | dot -Tsvg > dag.svg` can be used to generate a graph that illustrates the different executed commands. Can you get it to run? Does the graph look like you expected? (It is trivial at this point, but will be more useful later in this exercise).
+5. (Bonus) Try coming up with some further way to process the resulting output. Add another rule taking output from either the `convert_fastq_to_fasta` or `retrieve_fasta_stats` rules.
+   Rerun this extended workflow. Ideas for further extension could be
+    * Gather only the FASTA-IDs in a separate file
+    * Make a summary of the summary files (the `.tsv` outputs), with the average numbers of nucleotides and GC-content provided.
+6. (Bonus) If you are proficient in Python, feel free to further extend the `retrieve_fasta_stats.py` script to calculate any sequence characteristics you find interesting.
 
-Illustration of the workflow at this point (generated in exercise 3):
+Illustration of the workflow at this point (generated using the `--dag` flag, as outlined in the exercise):
 
 ![Workflow illustration, step 2](figures/step2_dag.svg.png)
 
