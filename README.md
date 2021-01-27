@@ -44,9 +44,9 @@ I would encourage you to follow along with the exercise by writing out your own 
 
 Subsets of the data containing the 2500 first reads from each file are found in the GitHub repository "data" folder. For the interested, the full-sized FASTQ-files can also be downloaded from [here](https://www.dropbox.com/s/gehwyfz21xsim5q/snakemake_workshop_full_data.zip?dl=0).
 
-The data is originally from a study investigating the gut microbiota of ants from different colonies (Benjamino and Graf, 2016). The study can be accessed [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4756164).
+The data is originally from a study investigating the gut microbiota of termites from different colonies (Benjamino and Graf, 2016). The study can be accessed [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4756164).
 
-We will investigate the GC-content from the microbiome found in different ant-colonies. To do this, we will build a Snakemake pipeline that can:
+We will investigate the GC-content from the microbiome found in different termite-colonies. To do this, we will build a Snakemake pipeline that can:
 
 1. Reprocess the data from raw FASTQ-files into FASTA-files.
 2. Extract key information from these reads.
