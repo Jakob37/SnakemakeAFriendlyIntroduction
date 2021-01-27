@@ -275,39 +275,55 @@ Illustration of the workflow at this point (generated using the `--dag` flag, as
 
 # Step 3 - Multiple input files
 
-Now, you have seen how we can run multiple rules for one input file. More commonly, we have multiple input files. Let's see how to run the rules for three files, and in parallel calculate the GC-values for their sequences.
+Now, you have seen how we can chain multiple rules for one input file. More commonly, we have multiple input files. This is where Snakemake really starts to shine.
+Let's see how to run the rules for three files, converting all three of them to FASTA-files and calculating the GC-values of their sequences.
 
-Remember that Snakemake is written in Python, so you are free to use common Python code throughout the Snakemake scripts. The most straightforward way to process multiple files is to include them in a Python list, and then use the command `expand` to tell the Snakemake rules to look for all these file patterns.
+Remember that Snakemake is written in Python, so you are free to use common Python code throughout the Snakemake scripts. 
+The most straightforward way to process multiple files is to include the sample-specific part of the filenames in a Python list, 
+and then use the command `expand` to tell the Snakemake rules to look for all these file patterns, as will be shown below.
+
+**Note:** Snakemake expects all your sample-names to follow the same overall pattern, with one variable part being unique for each sample. 
 
 ```
 samples = [21AL.A_R1, MA.B.E_R1, MA.C.A_R1]
 ```
 
-This quickly becomes overwhelming if you run many samples, and a more general approach is desirable. Snakemake provides this through the function `glob_wildcards`.
+### Managing a large number of samples
 
-Here, Snakemake looks for sample names matching a pattern in the file names, and extracts a specified part of the filename (in this case, corresponding to the sample-patterns stored in the previous example).
+This approach quickly becomes overwhelming if you run many samples, and a more general approach is often desirable. 
+Snakemake provides this through the function `glob_wildcards`.
+Here, Snakemake looks for sample names matching a pattern in the file names, and uses this to find the pattern of all sample-files in a folder.
+
+**Note:** The "," after the "samples" is in this case necessary, as this converts the output from `glob_wildcards` into list-format
 
 ```
-samples = glob_wildcards("data/{sample}.fastq")
+samples, = glob_wildcards("data/{sample}.fastq")
 ```
 
 We can test this by adding a `print` statement on the second row `print(samples)`, and try running. Remember - we can use standard Python within the Snakemake workflow.
+
+### Running the workflow for multiple files
 
 Now we are ready to run. For now, we use the smaller set of three file-names as this makes it easier to quickly re-run the workflow during development.
 
 Furthermore, we need to introduce a new concept to help snakemake understand how to handle the sample-names - the `expand` command and the `{...}` patterns in the sample names.
 
-Instead of explicitly writing out one sample-name in the rules as before, this is now replaced with the pattern `{sample}`. This will be assigned the different sample-names as specified by the `samples` list. To do this we use the `expand` command. Here, Snakemake will expand the list `samples` into the pattern `sample` and generate three different full file-paths: `output/2_summaries/21AL.A_R1.tsv`, `output/2_summaries/MA.B.E_R1.tsv` and `output/2_summaries/MA.C.A_R1.tsv`.
+Instead of explicitly writing out exact sample-paths in the rules as before, we now use the `{...}` pattern, in this case `{sample}`. 
+This is used to assign the different sample-names as specified by the `samples` list. 
+To do this we use the `expand` command. Here, Snakemake will expand the list `samples` into the pattern `sample` and generate three different full file-paths: 
 
-Now, the command looks the following:
+`output/2_summaries/21AL.A_R1.tsv`, `output/2_summaries/MA.B.E_R1.tsv` and `output/2_summaries/MA.C.A_R1.tsv`.
+
+Snakemake can then figure out the expected names of the prior rules, and inserting that in the `{sample}` part of each input and output.
+After updating the workflow, it looks the following way:
 
 ```
 configfile: "config.yaml"
-samples = [21AL.A_R1, MA.B.E_R1, MA.C.A_R1]
+samples = ["21AL.A_R1", "MA.B.E_R1", "MA.C.A_R1"]
 
 rule all:
     input:
-        expand("output/2_summaries/{sample}.tsv", sample=samples)
+        expand("output/2_summary/{sample}.tsv", sample=samples)
 
 rule convert_fastq_to_fasta:
     input: "data/{sample}.fastq"
@@ -324,7 +340,7 @@ rule get_sequence_measures:
     input:
         in_fasta="output/1_fasta/{sample}.fasta"
     output:
-        out_fasta="output/2_summaries/{sample}.tsv"
+        out_fasta="output/2_summary/{sample}.tsv"
     shell:
         """
         python3 scripts/retrieve_fasta_stats.py \
@@ -333,28 +349,33 @@ rule get_sequence_measures:
         """
 ```
 
+## Exercise
+
+1. Try changing the list-syntax such that all five samples are run.
+2. Try the glob-syntax, and see if you can run all of the files.
+3. Carefully inspect the workflow, and see what happens if you remove certain output files. What commands are executed in each case?
+4. Try running it one one core or multiple cores using the `--cores` command. Increase the `--max_entries` setting to better see the difference.
+5. (Likely not working on Windows) Try using the command `snakemake --dag | dot -Tsvg > dag.svg` to generate a graph that illustrates the different executed commands. Does the graph look like you expected?
+
 Running it will generate the following graph.
 
 ![Workflow illustration, step 3](figures/step3_dag.svg.png)
 
-## Exercise
-
-1. Try changing the list-syntax, and see if you can run two additional samples.
-2. Try the glob-syntax, and see if you can run all of the files.
-3. Try using the command `snakemake --dag | dot -Tsvg > dag.svg` to generate a graph that illustrates the different executed commands. Does the graph look like you expected?
-4. (Bonus) If you are proficient in Python, feel free to explore the `retrieve_fasta_stats` script, and calculate further stats for the FASTA-files!
-
 # Step 4 - Combining multiple files into one
 
-At this point we will end up with a set of processed files, each containing useful information about each FASTA file. It is still a bit difficult to overview though, and a common task is to combine these different files into a single one, which then could be used for further inspection, statistics and visualizations.
+At this point we will end up with a set of processed files, each containing useful information about each FASTA file. 
+It is still a bit difficult to overview though, and a common task is to combine these different files into a single one, 
+which then could be used for further inspection, statistics and visualizations.
+
+To achieve this, we initially process each file separately, but then at the new rule `combine_sequence_measures` gather the
+input from all these parallel rules. This we do by moving the `expand` statement into the input of this rule from the `rule all`.
+We change the `rule all` expected output, as now the final output is a single output file.
+
+After doing these changes in the previous code, the workflow will look the following way.
 
 ```
 configfile: "config.yaml"
-samples = [
-  data/21AL.A_R1,
-  data/21AL.A_R2,
-  data/21AL.B_R1
-]
+samples = ["21AL.A_R1", "MA.B.E_R1", "MA.C.A_R1"]
 
 rule all:
     input:
@@ -372,14 +393,14 @@ rule get_sequence_measures:
     input:
         in_fasta="output/1_fasta/{sample}.fasta"
     output:
-        out_fasta="output/2_summaries/{sample}.tsv"
+        out_fasta="output/2_summary/{sample}.tsv"
     shell:
         """
         python3 scripts/retrieve_fasta_stats.py --input {input.in_fasta} --output {output.out_fasta}
         """
 
 rule combine_sequence_measures:
-    input: expand("output/2_summaries/{sample}.tsv", sample=samples)
+    input: expand("output/2_summary/{sample}.tsv", sample=samples)
     output: "output/3_combined/combined.tsv"
     shell:
         """
@@ -389,23 +410,51 @@ rule combine_sequence_measures:
 
 Now we have successfully generated a joint file with statistics calculated for each of the original files.
 
+Here is the graphical illustration of the workflow:
+
 ![Workflow illustration, step 4](figures/step4_dag.svg.png)
 
 ## Exercises
 
-1. Try using the command `snakemake --dag | dot -Tsvg > dag.svg` to generate a graph which illustrates the different executed commands. Does the graph look like you expected?
+1. Again, try adjusting the included samples, and the included number of used sequences `--max_entries`. How is this reflected in the output?
+2. (Bonus - Advanced) Expand the workflow by calculating average GC-values for each sample. Do this by first calculating separate values for each sample, and then merging them by an additional command,
+which similarly to the `combine_sequence_measures` collects outputs from all the files, and produces one single output. This can be done by an external script in any language, or directly
+   in the snakemake file using `bash` or `python` (in the latter case, you likely need to replace `shell` with `run`). 
+
+A good starting point for (2) could be something like the following. Normal Python code can be written after `run`. The input files
+could be loaded, and the average GC calculated and printed as a single number. Here, also the `wildcards` syntax is presented, which
+can be used to obtain the current sample-name from within the code.
+
+These outputs could then be combined in another rule.
+```
+rule get_averages:
+    input:
+        in_sum="output/2_summary/{sample}.tsv"
+    output:
+        out_sum="output/4_sample_sum/{sample}.sample_sum.tsv"
+    run:
+        with open(output.out_sum, 'w') as out_fh:
+            print("test output", file=out_fh)
+```
+
+3. (Bonus, probably not working on Windows) If carrying out the exercise above, try also using the command `snakemake --dag | dot -Tsvg > dag.svg` to inspect the resulting graph.
 
 # Step 5 - Visualizing and wrapping up
 
-As a final step, we would like to generate visualizations from these measures. Here, we could commonly also calculate statistics, or combine them with other data. 
+As a final step, we would like to generate visualizations from these measures. Here, we could commonly also calculate statistics, or combine them with other data.
+Furthermore, more settings are retrieved from the `config.yaml`-file, to allow customizing the final output visualization.
+
+The additional rule takes the combined summary table, and uses this to produce a Seaborn histogram plot, illustrating the 
+distribution of GC-values within each sample.
+
+Not much new here, just wrapping up with showing that the visualization output can be the final output.
+
+Note that for the visualization Python-script to run you will need to have the Python package `seaborn` installed.
+This can be installed with either `conda install seaborn` if using a conda environment, or `pip install seaborn` otherwise.
 
 ```
 configfile: "config.yaml"
-samples = [
-  data/21AL.A_R1,
-  data/21AL.A_R2,
-  data/21AL.B_R1
-]
+samples = ["21AL.A_R1", "MA.B.E_R1", "MA.C.A_R1"]
 
 rule all:
     input:
@@ -449,20 +498,36 @@ rule visualize_summary:
             --nbr_cols {config[plotting][number_cols]} \
             --title {config[plotting][title]}
         """
+```
 
+Config file:
+
+```
+settings:
+  max_nbr_seqs: 10
+plotting:
+  number_bins: 20
+  number_cols: 4
+  title: "GC-distributions"
 ```
 
 ![Workflow illustration, step 5](figures/step5_dag.svg.png)
 
 ## Exercises
 
-1. Try using the command `snakemake --dag | dot -Tsvg > dag.svg` to generate a graph that illustrates the different executed commands. Does the graph look like you expected?
-2. Config file - move the paths of the files to this file, and also specify how many threads should be used to avoid overwhelming the server.
-3. (Bonus) If comfortable with Python, further adjust the 'visualize_summary.py' script to generate more output visualizations. This could also be done using an R script.
+1. Run the workflow, and inspect the different outputs. Does there seem to be a systematic difference in GC-contents?
+2. Try to adjust the different settings within the config file. Inspect whether the GC-contents seem to change.
+3. (Bonus - Advanced) If comfortable with Python (or R) make another visualization script to generate more output visualizations. 
+   This could for instance visualize the average GC-contents from each file as boxplots.
+4. (Bonus - Advanced) In a separate step, calculate whether there is a statistical difference in the GC-contents obtained from the different files.
 
 # More complex examples, and reading materials
 
-These are some of the fundamentals. Of course, there are further variations on this, and in real life you might need particular solutions for particular situations. Worry not - most likely many other people have encountered the same issues before. If you google well, you will most likely find the answers. Also, here is a great page summarizing many of the common questions you might encounter:
+With that, we conclude the exercise. Hope you learned things which will be of use in your future analyses!
+
+These are some of the fundamentals. Of course, there are further variations on this, and in real life you might need particular solutions 
+for particular situations. Worry not - most likely many other people have encountered the same issues before. 
+If you google well, you will most likely find the answers. Also, here is a great page summarizing many of the common questions you might encounter:
 
 https://snakemake.readthedocs.io/en/stable/project_info/faq.html
 
@@ -473,3 +538,7 @@ https://snakemake.readthedocs.io/en/stable/tutorial/tutorial.html#tutorial
 Also, if you want to see a more extensive real-world example of Snakemake workflow, the NBIS organization (the National Bioinformatics Infrastructure in Sweden) has one here designed for metagenomics analyses:
 
 https://github.com/NBISweden/nbis-meta
+
+Feel free to contact me with any issues or questions abut the tutorial.
+
+Best of luck!

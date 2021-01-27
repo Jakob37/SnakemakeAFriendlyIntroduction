@@ -1,5 +1,5 @@
 settings:
-  max_nbr_seqs: 100
+  max_nbr_seqs: 10
 plotting:
   number_bins: 20
   number_cols: 4
